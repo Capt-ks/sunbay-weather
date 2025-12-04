@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Sunbay Marina Weather</title></head>
-<body style="margin:0;background:#0f172a;">
-<canvas id="c" width="1080" height="1080"></canvas>
+<html><head><meta charset="utf-8"><title>Sunbay Marina Weather Generator</title></head>
+<body style="margin:0;background:#0f172a;display:flex;align-items:center;justify-content:center;height:100vh;">
+<canvas id="c" width="1080" height="1080" style="display:none;"></canvas>
 <script>
 const c=document.getElementById('c'), x=c.getContext('2d');
+const GITHUB_TOKEN = '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';  // ← REPLACE WITH YOUR TOKEN FROM STEP 2
 
 async function run(){
   const [w,m]=await Promise.all([
@@ -20,15 +21,15 @@ async function run(){
       fetch('https://api.github.com/repos/Capt-ks/sunbay-weather/contents/sunbay_marina_forecast.png', {
         method: 'PUT',
         headers: {
-          Authorization: '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',
-          Accept: 'application/vnd.github.v3+json'
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json'
         },
         body: JSON.stringify({
-          message: 'Update weather card',
+          message: `Update weather card - ${new Date().toISOString()}`,
           content: base64,
           branch: 'main'
         })
-      });
+      }).then(r=>r.json()).then(data => console.log('PNG committed!')).catch(e => console.error(e));
     };
     reader.readAsDataURL(blob);
   }, 'image/png');
