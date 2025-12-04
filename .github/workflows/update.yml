@@ -1,0 +1,12 @@
+name: Update Weather Card
+on:
+  schedule:
+    - cron: '0 */4 * * *'   # Every 4 hours
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npx puppeteer@latest --headless --no-sandbox https://capt-ks.github.io/sunbay-weather/
