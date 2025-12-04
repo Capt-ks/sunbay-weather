@@ -1,12 +1,27 @@
-name: Update Weather Card
+name: Update Sunbay Weather Card
 on:
   schedule:
-    - cron: '0 */4 * * *'   # Every 4 hours
-  workflow_dispatch:
+    - cron: '0 */4 * * *'  # Every 4 hours
+  workflow_dispatch:  # Manual trigger
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-      - run: npx puppeteer@latest --headless --no-sandbox https://capt-ks.github.io/sunbay-weather/
+      - name: Setup Puppeteer
+        uses: browser-actions/setup-chrome@v1
+      - name: Generate Image
+        uses: browser-actions/browse@v1
+        with:
+          headless: true
+          url: https://capt-ks.github.io/sunbay-weather/
+          wait-until: networkidle0
+      - name: Commit PNG
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add sunbay_marina_forecast.png
+          git diff --staged --quiet || git commit -m "Update weather card $(date)"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
