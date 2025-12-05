@@ -1,11 +1,11 @@
 name: Update Sunbay Weather Card
 on:
   schedule:
-    - cron: '0 */4 * * *'  # Every 4 hours
+    - cron: '0 */4 * * *'
   workflow_dispatch:
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger PNG Generation
+      - name: Trigger Generation
         run: curl -s https://capt-ks.github.io/sunbay-weather/ > /dev/null
