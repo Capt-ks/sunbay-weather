@@ -49,13 +49,13 @@ jobs:
             ctx.font = '600 54px system-ui';
             ctx.fillText(astTime.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}),540,120);
             ctx.font = 'italic 42px system-ui'; ctx.fillStyle = '#64748b';
-            ctx.fillText(`Fajardo Bay | Updated ${astTime.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})} AST`,540,170);
+            ctx.fillText(`Fajardo Bay, PR | Updated ${astTime.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})} AST`,540,170);
 
             const L = 150, R = 570;
             ctx.textAlign = 'left';
             ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
             ctx.fillText('Weather', L, 280);
-            ctx.font = '900 120px system-ui'; ctx.fillStyle = '#164e63';
+            ctx.font = '900 90px system-ui'; ctx.fillStyle = '#164e63';
             ctx.fillText(`${Math.round(cur.temperature_2m)}°`, L, 460);
             ctx.font = '56px system-ui'; ctx.fillStyle = '#475569';
             ctx.fillText(`Feels ${Math.round(cur.apparent_temperature)}°F`, L, 510);
@@ -64,11 +64,11 @@ jobs:
 
             ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
             ctx.fillText('Marine', R, 280);
-            ctx.font = '700 120px system-ui'; ctx.fillStyle = '#164e63';
+            ctx.font = '700 90px system-ui'; ctx.fillStyle = '#164e63';
             ctx.fillText(`${(h.wave_height[12]*3.28).toFixed(1)} ft`, R, 460);
             ctx.font = '56px system-ui'; ctx.fillStyle = '#475569';
             ctx.fillText(`Today • ${compass(h.wave_direction[12])}`, R, 510);
-            ctx.font = '64px system-ui'; ctx.fillStyle = '#1e293b';
+            ctx.font = '50px system-ui'; ctx.fillStyle = '#1e293b';
             ctx.fillText(`Tomorrow → ${(h.wave_height[36]*3.28).toFixed(1)} ft`, R, 620);
             ctx.fillText(`Day After → ${(h.wave_height[60]*3.28).toFixed(1)} ft`, R, 700);
 
