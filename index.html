@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Sunbay Marina Weather</title></head>
-<body style="margin:0;background:#0f172a;color:white;font-family:system-ui;text-align:center;padding-top:40vh;">
-<h1>Sunbay Marina Weather Generator</h1>
-<p>PNG generated and committed automatically every 4 hours.</p>
-<p>Your live card: <a href="sunbay_marina_forecast.png" style="color:#a5f3fc;">https://capt-ks.github.io/sunbay-weather/sunbay_marina_forecast.png</a></p>
+<body style="margin:0;background:#0f172a;color:white;font-family:system-ui;text-align:center;padding:20vh;">
+<h1>Sunbay Marina Weather Card</h1>
+<p>Generated automatically every 4 hours.</p>
+<p>Your live image: <a href="sunbay_marina_forecast.png" style="color:#a5f3fc;">sunbay_marina_forecast.png</a></p>
 <canvas id="c" width="1080" height="1080" style="display:none;"></canvas>
 <script>
-// Optional: Manual generation for testing (no token needed here)
+// This is a test generator (runs when page loads — for manual testing)
 const c = document.getElementById('c');
 const x = c.getContext('2d');
 
 async function testGenerate() {
-  document.body.innerHTML += '<p>Testing generation...</p>';
+  document.body.innerHTML += '<p>Testing...</p>';
   const [w,m]=await Promise.all([
     fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m&daily=temperature_2m_max,temperature_2m_min&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json()),
     fetch("https://marine-api.open-meteo.com/v1/marine?latitude=18.3258&longitude=-65.6524&hourly=wave_height,wave_direction,swell_wave_height&forecast_days=3&timezone=America/Puerto_Rico").then(r=>r.json())
   ]);
 
   drawCard(w,m);
-  document.body.innerHTML += '<p>Canvas rendered! Check the PNG link above.</p>';
+  document.body.innerHTML += '<p>Canvas ready! Check the PNG link.</p>';
 }
 
 function drawCard(w,m){
@@ -67,7 +67,7 @@ function drawCard(w,m){
 function wmo(c){const m={0:"Clear sky",1:"Mostly clear",2:"Partly cloudy",3:"Cloudy",45:"Fog",51:"Light rain",53:"Rain",61:"Rain",63:"Rain",65:"Heavy rain",80:"Showers",95:"Thunderstorm"};return m[c]||"Weather";}
 function compass(d){const dirs=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];return dirs[Math.round(d/22.5)%16];}
 
-// Test manual generation
+// Run test generation
 testGenerate();
 </script>
 </body>
