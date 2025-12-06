@@ -20,30 +20,23 @@
       background: transparent;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
       color: var(--text);
-      font-size: 11px; /* compact */
+      font-size: 11px; /* smaller base font */
     }
     .widget {
       background: var(--bg);
       border-radius: 8px;
       border: 1px solid #182240;
-      padding: 6px;
-      width: 90%;
-      max-width: 300px; /* smaller box */
+      padding: 6px;              /* reduced padding */
+      width: 90%;                /* fluid width */
+      max-width: 300px;          /* smaller box */
       margin: 8px auto;
       box-shadow: 0 3px 8px rgba(8, 12, 22, 0.25);
-      text-align: center; /* center logo */
     }
-    .logo {
-      max-width: 80%;
-      height: auto;
-      margin: 4px auto 6px auto;
-      display: block;
-    }
-    .header { display: flex; justify-content: space-between; margin-bottom: 4px; text-align: left; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 4px; }
     .title { font-weight: 600; font-size: 12px; }
     .sub { font-size: 9px; color: var(--muted); }
     .grid { display: grid; gap: 4px; }
-    .card { background: var(--card); border: 1px solid #1a2546; border-radius: 6px; padding: 6px; text-align: left; }
+    .card { background: var(--card); border: 1px solid #1a2546; border-radius: 6px; padding: 6px; }
     .card h3 { margin: 0 0 4px; font-size: 10px; color: var(--accent); }
     .kv { display: flex; gap: 3px; margin: 2px 0; }
     .kv .label { color: var(--muted); font-size: 9px; min-width: 60px; }
@@ -60,16 +53,16 @@
       .widget { padding: 5px; max-width: 260px; }
       .title { font-size: 11px; }
       .sub { font-size: 8px; }
-      .grid { grid-template-columns: 1fr; } /* stack cards */
+      .grid { grid-template-columns: 1fr; }
       .card h3 { font-size: 9px; }
       .kv .label { font-size: 8px; }
       .kv .value { font-size: 10px; }
       .footer { font-size: 7px; }
     }
 
-    /* Tablet/desktop */
+    /* Desktop */
     @media (min-width: 768px) {
-      .grid { grid-template-columns: 1fr 1fr; } /* side by side */
+      .grid { grid-template-columns: 1fr 1fr; }
       .title { font-size: 13px; }
       .card h3 { font-size: 11px; }
       .kv .value { font-size: 12px; }
@@ -78,9 +71,6 @@
 </head>
 <body>
   <div class="widget" id="widget">
-    <!-- Top-center logo -->
-    <img class="logo" src="https://static.wixstatic.com/media/80c250_314402dd36ed4723ae16cacbd1d0df82~mv2.png/v1/fill/w_728,h_360,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/80c250_314402dd36ed4723ae16cacbd1d0df82~mv2.png" alt="RabirubiaWeather logo" />
-
     <div class="header">
       <div>
         <div class="title">Marine & Wind — Puerto Rico</div>
@@ -113,14 +103,10 @@
   </div>
 
   <script>
-    // Location/time
     const lat = 18.4655, lon = -66.1057, tz = "America/Puerto_Rico";
-
-    // PWS (preferred wind)
     const stationId = "IFAJAR39";
     const apiKey = "2a624a0259934c57a24a0259935c5714";
 
-    // Utils
     function degToCompass(deg) {
       const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW','N'];
       return dirs[Math.round(((deg % 360) / 22.5))];
@@ -130,7 +116,6 @@
     function cToF(v) { return v * 9/5 + 32; }
     function mpsToMph(v) { return v * 2.23694; }
 
-    // Marine (Open-Meteo Marine)
     async function loadMarine() {
       const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&timezone=${tz}&forecast_days=1`;
       const resp = await fetch(url);
@@ -142,96 +127,18 @@
         document.getElementById('wavePeriod').textContent = h.wave_period[0] + " s";
         document.getElementById('waveDirection').textContent = degToCompass(h.wave_direction[0]) + " ("+ h.wave_direction[0] +"°)";
         document.getElementById('sst').textContent = cToF(h.sea_surface_temperature[0]).toFixed(1) + " °F";
-      } else {
-        document.getElementById('waveHeight').textContent = "N/A";
-        document.getElementById('wavePeriod').textContent = "N/A";
-        document.getElementById('waveDirection').textContent = "N/A";
-        document.getElementById('sst').textContent = "N/A";
       }
     }
 
-    // Wind (Weather.com PWS preferred)
     async function loadWindPreferred() {
       const url = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
       const resp = await fetch(url);
       if (!resp.ok) throw new Error("PWS fetch failed");
       const data = await resp.json();
-
       if (!data.observations || !data.observations[0]) throw new Error("No PWS data");
       const obs = data.observations[0];
-
       const windSpeed = obs?.imperial?.windSpeed ?? obs?.imperial?.wspd ?? null;
       const gust = obs?.imperial?.windGust ?? null;
       const windDirDeg = obs?.winddir ?? null;
-
       if (windSpeed == null || windDirDeg == null) throw new Error("Incomplete PWS data");
-
-      document.getElementById('windSpeed').textContent = windSpeed + " mph";
-      document.getElementById('windGusts').textContent = gust != null ? gust + " mph" : "—";
-      document.getElementById('windDirText').textContent = degToCompass(windDirDeg);
-      updateArrow(windDirDeg);
-
-      document.getElementById('conditionsStatus').className = "pill status-ok";
-      document.getElementById('conditionsStatus').textContent = "PWS";
-    }
-
-    // Wind fallback (Open-Meteo Forecast)
-    async function loadWindFallback() {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&timezone=${tz}&forecast_days=1`;
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error("Open-Meteo wind fetch failed");
-      const j = await resp.json();
-
-      const h = j.hourly || {};
-      if (Array.isArray(h.wind_speed_10m) && h.wind_speed_10m.length > 0) {
-        const spd = h.wind_speed_10m[0];
-        const gst = h.wind_gusts_10m && h.wind_gusts_10m[0];
-        const dir = h.wind_direction_10m && h.wind_direction_10m[0];
-
-        document.getElementById('windSpeed').textContent = mpsToMph(spd).toFixed(1) + " mph";
-        document.getElementById('windGusts').textContent = gst != null ? mpsToMph(gst).toFixed(1) + " mph" : "—";
-        if (dir != null) {
-          document.getElementById('windDirText').textContent = degToCompass(dir);
-          updateArrow(dir);
-        } else {
-          document.getElementById('windDirText').textContent = "N/A";
-        }
-
-        document.getElementById('conditionsStatus').className = "pill status-warn";
-        document.getElementById('conditionsStatus').textContent = "Open‑Meteo";
-      } else {
-        document.getElementById('windSpeed').textContent = "N/A";
-        document.getElementById('windGusts').textContent = "N/A";
-        document.getElementById('windDirText').textContent = "N/A";
-        document.getElementById('conditionsStatus').className = "pill status-danger";
-        document.getElementById('conditionsStatus').textContent = "Wind error";
-      }
-    }
-
-    // Bootstrap
-    (async () => {
-      try {
-        await loadMarine();
-
-        try {
-          await loadWindPreferred(); // Try PWS first
-        } catch (err) {
-          console.warn("Preferred wind failed, using fallback:", err);
-          await loadWindFallback();  // Fallback to Open-Meteo
-        }
-
-        document.getElementById('updatedLabel').textContent =
-          "Updated: " + new Date().toLocaleString("en-US", { timeZone: tz });
-      } catch (e) {
-        console.error("Widget error:", e);
-        document.getElementById('conditionsStatus').className = "pill status-danger";
-        document.getElementById('conditionsStatus').textContent = "Data error";
-        ["waveHeight","wavePeriod","waveDirection","sst","windSpeed","windGusts","windDirText"].forEach(id => {
-          const el = document.getElementById(id);
-          if (el && (!el.textContent || el.textContent === "—")) el.textContent = "N/A";
-        });
-      }
-    })();
-  </script>
-</body>
-</html>
+      document.getElementById
