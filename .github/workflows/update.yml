@@ -1,97 +1,237 @@
-name: Update Fajardo Weather Card
-on:
-  schedule:
-    - cron: '0 */4 * * *'
-  workflow_dispatch:
-jobs:
-  update:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install Dependencies
-        run: npm install canvas node-fetch@2
-      - name: Generate PNG with Correct AST Time
-        run: |
-          cat > generate.js << 'EOF'
-          const { createCanvas } = require('canvas');
-          const fetch = require('node-fetch');
-          const fs = require('fs');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Puerto Rico Marine & Wind Widget</title>
+  <style>
+    :root {
+      --bg: #0b1221;
+      --card: #121a2e;
+      --accent: #2ac3ff;
+      --text: #e8edf7;
+      --muted: #9fb0d1;
+      --danger: #ff5f73;
+      --ok: #49d190;
+      --warn: #ffba3b;
+    }
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      font-size: 11px; /* compact */
+    }
+    .widget {
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px solid #182240;
+      padding: 6px;
+      width: 90%;
+      max-width: 300px; /* smaller box */
+      margin: 8px auto;
+      box-shadow: 0 3px 8px rgba(8, 12, 22, 0.25);
+      text-align: center; /* center logo */
+    }
+    .logo {
+      max-width: 80%;
+      height: auto;
+      margin: 4px auto 6px auto;
+      display: block;
+    }
+    .header { display: flex; justify-content: space-between; margin-bottom: 4px; text-align: left; }
+    .title { font-weight: 600; font-size: 12px; }
+    .sub { font-size: 9px; color: var(--muted); }
+    .grid { display: grid; gap: 4px; }
+    .card { background: var(--card); border: 1px solid #1a2546; border-radius: 6px; padding: 6px; text-align: left; }
+    .card h3 { margin: 0 0 4px; font-size: 10px; color: var(--accent); }
+    .kv { display: flex; gap: 3px; margin: 2px 0; }
+    .kv .label { color: var(--muted); font-size: 9px; min-width: 60px; }
+    .kv .value { font-size: 11px; font-weight: 600; }
+    .pill { background: #0f1a34; border: 1px solid #223056; border-radius: 999px; padding: 2px 5px; font-size: 9px; }
+    .status-ok { color: var(--ok); }
+    .status-warn { color: var(--warn); }
+    .status-danger { color: var(--danger); }
+    .arrow { border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 6px solid var(--accent); display: inline-block; transform-origin: 50% 100%; }
+    .footer { display: flex; justify-content: space-between; margin-top: 4px; font-size: 8px; color: var(--muted); }
 
-          const canvas = createCanvas(1080, 1080);
-          const ctx = canvas.getContext('2d');
+    /* Mobile */
+    @media (max-width: 480px) {
+      .widget { padding: 5px; max-width: 260px; }
+      .title { font-size: 11px; }
+      .sub { font-size: 8px; }
+      .grid { grid-template-columns: 1fr; } /* stack cards */
+      .card h3 { font-size: 9px; }
+      .kv .label { font-size: 8px; }
+      .kv .value { font-size: 10px; }
+      .footer { font-size: 7px; }
+    }
 
-          // Puerto Rico = UTC-4, no DST → fixed offset
-          const now = new Date();
-          const astOffset = -4 * 60; // minutes
-          const localTime = new Date(now.getTime() + astOffset * 60 * 1000);
+    /* Tablet/desktop */
+    @media (min-width: 768px) {
+      .grid { grid-template-columns: 1fr 1fr; } /* side by side */
+      .title { font-size: 13px; }
+      .card h3 { font-size: 11px; }
+      .kv .value { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="widget" id="widget">
+    <!-- Top-center logo -->
+    <img class="logo" src="https://static.wixstatic.com/media/80c250_314402dd36ed4723ae16cacbd1d0df82~mv2.png/v1/fill/w_728,h_360,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/80c250_314402dd36ed4723ae16cacbd1d0df82~mv2.png" alt="RabirubiaWeather logo" />
 
-          async function run() {
-            const [w, m] = await Promise.all([
-              fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m&daily=temperature_2m_max,temperature_2m_min&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json()),
-              fetch("https://marine-api.open-meteo.com/v1/marine?latitude=18.3258&longitude=-65.6524&hourly=wave_height,wave_direction,swell_wave_height&forecast_days=3&timezone=America/Puerto_Rico").then(r=>r.json())
-            ]);
+    <div class="header">
+      <div>
+        <div class="title">Marine & Wind — Puerto Rico</div>
+        <div class="sub" id="locationLabel">San Juan, PR</div>
+      </div>
+      <span class="pill" id="conditionsStatus">Loading...</span>
+    </div>
 
-            drawCard(w, m, localTime);
-            fs.writeFileSync('sunbay_marina_forecast.png', canvas.toBuffer('image/png'));
-            console.log('PNG generated with correct AST time!');
-          }
+    <div class="grid">
+      <div class="card">
+        <h3>Marine</h3>
+        <div class="kv"><span class="label">Wave</span><span class="value" id="waveHeight">—</span></div>
+        <div class="kv"><span class="label">Period</span><span class="value" id="wavePeriod">—</span></div>
+        <div class="kv"><span class="label">Swell</span><span class="value" id="waveDirection">—</span></div>
+        <div class="kv"><span class="label">SST</span><span class="value" id="sst">—</span></div>
+      </div>
 
-          function drawCard(w, m, astTime) {
-            const cur = w.current, daily = w.daily, h = m.hourly;
-            const grad = ctx.createLinearGradient(0,0,0,1080);
-            grad.addColorStop(0,'#a5f3fc'); grad.addColorStop(1,'#ecfeff');
-            ctx.fillStyle = grad; ctx.fillRect(0,0,1080,1080);
+      <div class="card">
+        <h3>Wind</h3>
+        <div class="kv"><span class="label">Speed</span><span class="value" id="windSpeed">—</span></div>
+        <div class="kv"><span class="label">Dir</span><span class="value"><span id="windDirText">—</span> <span class="arrow" id="windArrow"></span></span></div>
+        <div class="kv"><span class="label">Gusts</span><span class="value" id="windGusts">—</span></div>
+      </div>
+    </div>
 
-            ctx.textAlign = 'center'; ctx.fillStyle = '#155e75';
-            ctx.font = '600 54px system-ui';
-            ctx.fillText(astTime.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}),540,120);
-            ctx.font = 'italic 42px system-ui'; ctx.fillStyle = '#64748b';
-            ctx.fillText(`Fajardo Bay, PR | Updated ${astTime.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})} AST`,540,170);
+    <div class="footer">
+      <div>Branded by RabirubiaWeather</div>
+      <div id="updatedLabel">Updated: —</div>
+    </div>
+  </div>
 
-            const L = 150, R = 570;
-            ctx.textAlign = 'left';
-            ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
-            ctx.fillText('Weather', L, 280);
-            ctx.font = '900 90px system-ui'; ctx.fillStyle = '#164e63';
-            ctx.fillText(`${Math.round(cur.temperature_2m)}°`, L, 460);
-            ctx.font = '50px system-ui'; ctx.fillStyle = '#475569';
-            ctx.fillText(`Feels ${Math.round(cur.apparent_temperature)}°F`, L, 510);
-            ctx.fillText(wmo(cur.weathercode), L, 570);
-            ctx.fillText(`Wind ${Math.round(cur.windspeed_10m)} mph ${compass(cur.winddirection_10m)}`, L, 630);
-            ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
-            ctx.fillText('Marine', R, 280);
-            ctx.font = '700 90px system-ui'; ctx.fillStyle = '#164e63';
-            ctx.fillText(`${(h.wave_height[12]*3.28).toFixed(1)} ft`, R, 460);
-            ctx.font = '50px system-ui'; ctx.fillStyle = '#475569';
-            ctx.fillText(`Today • ${compass(h.wave_direction[12])}`, R, 510);
-            ctx.font = '50px system-ui'; ctx.fillStyle = '#1e293b';
-            ctx.fillText(`Tomorrow → ${(h.wave_height[36]*3.28).toFixed(1)} ft`, R, 620);
-            ctx.fillText(`Day After → ${(h.wave_height[60]*3.28).toFixed(1)} ft`, R, 700);
+  <script>
+    // Location/time
+    const lat = 18.4655, lon = -66.1057, tz = "America/Puerto_Rico";
 
-            ctx.font = '48px system-ui'; ctx.fillStyle = '#1e293b';
-            ['Today','Tomorrow','Day After'].forEach((d,i) => {
-              const hi = Math.round(daily.temperature_2m_max[i]);
-              const lo = Math.round(daily.temperature_2m_min[i]);
-              ctx.fillText(`${d} → ${hi}° / ${lo}°`, L, 760 + i*68);
-            });
+    // PWS (preferred wind)
+    const stationId = "IFAJAR39";
+    const apiKey = "2a624a0259934c57a24a0259935c5714";
 
-            ctx.font = 'italic 38px system-ui'; ctx.fillStyle = '#64748b'; ctx.textAlign = 'center';
-            ctx.fillText('Powered by Rabirubia-API • Updated every 4 hours',540,1060);
-          }
-          function wmo(c){const m={0:"Clear sky",1:"Mostly clear",2:"Partly cloudy",3:"Cloudy",45:"Fog",51:"Light rain",53:"Rain",61:"Rain",63:"Rain",65:"Heavy rain",80:"Showers",95:"Thunderstorm"};return m[c]||"Weather";}
-          function compass(d){const dirs=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];return dirs[Math.round(d/22.5)%16];}
+    // Utils
+    function degToCompass(deg) {
+      const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW','N'];
+      return dirs[Math.round(((deg % 360) / 22.5))];
+    }
+    function updateArrow(deg) { document.getElementById('windArrow').style.transform = `rotate(${deg}deg)`; }
+    function mToFt(v) { return v * 3.28084; }
+    function cToF(v) { return v * 9/5 + 32; }
+    function mpsToMph(v) { return v * 2.23694; }
 
-          run();
-          EOF
-          node generate.js
-      - name: Commit PNG
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add sunbay_marina_forecast.png
-          git diff --staged --quiet || git commit -m "Update weather card $(date)" && git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    // Marine (Open-Meteo Marine)
+    async function loadMarine() {
+      const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&timezone=${tz}&forecast_days=1`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("Marine fetch failed");
+      const j = await resp.json();
+      const h = j.hourly || {};
+      if (Array.isArray(h.wave_height) && h.wave_height.length > 0) {
+        document.getElementById('waveHeight').textContent = mToFt(h.wave_height[0]).toFixed(1) + " ft";
+        document.getElementById('wavePeriod').textContent = h.wave_period[0] + " s";
+        document.getElementById('waveDirection').textContent = degToCompass(h.wave_direction[0]) + " ("+ h.wave_direction[0] +"°)";
+        document.getElementById('sst').textContent = cToF(h.sea_surface_temperature[0]).toFixed(1) + " °F";
+      } else {
+        document.getElementById('waveHeight').textContent = "N/A";
+        document.getElementById('wavePeriod').textContent = "N/A";
+        document.getElementById('waveDirection').textContent = "N/A";
+        document.getElementById('sst').textContent = "N/A";
+      }
+    }
+
+    // Wind (Weather.com PWS preferred)
+    async function loadWindPreferred() {
+      const url = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("PWS fetch failed");
+      const data = await resp.json();
+
+      if (!data.observations || !data.observations[0]) throw new Error("No PWS data");
+      const obs = data.observations[0];
+
+      const windSpeed = obs?.imperial?.windSpeed ?? obs?.imperial?.wspd ?? null;
+      const gust = obs?.imperial?.windGust ?? null;
+      const windDirDeg = obs?.winddir ?? null;
+
+      if (windSpeed == null || windDirDeg == null) throw new Error("Incomplete PWS data");
+
+      document.getElementById('windSpeed').textContent = windSpeed + " mph";
+      document.getElementById('windGusts').textContent = gust != null ? gust + " mph" : "—";
+      document.getElementById('windDirText').textContent = degToCompass(windDirDeg);
+      updateArrow(windDirDeg);
+
+      document.getElementById('conditionsStatus').className = "pill status-ok";
+      document.getElementById('conditionsStatus').textContent = "PWS";
+    }
+
+    // Wind fallback (Open-Meteo Forecast)
+    async function loadWindFallback() {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&timezone=${tz}&forecast_days=1`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("Open-Meteo wind fetch failed");
+      const j = await resp.json();
+
+      const h = j.hourly || {};
+      if (Array.isArray(h.wind_speed_10m) && h.wind_speed_10m.length > 0) {
+        const spd = h.wind_speed_10m[0];
+        const gst = h.wind_gusts_10m && h.wind_gusts_10m[0];
+        const dir = h.wind_direction_10m && h.wind_direction_10m[0];
+
+        document.getElementById('windSpeed').textContent = mpsToMph(spd).toFixed(1) + " mph";
+        document.getElementById('windGusts').textContent = gst != null ? mpsToMph(gst).toFixed(1) + " mph" : "—";
+        if (dir != null) {
+          document.getElementById('windDirText').textContent = degToCompass(dir);
+          updateArrow(dir);
+        } else {
+          document.getElementById('windDirText').textContent = "N/A";
+        }
+
+        document.getElementById('conditionsStatus').className = "pill status-warn";
+        document.getElementById('conditionsStatus').textContent = "Open‑Meteo";
+      } else {
+        document.getElementById('windSpeed').textContent = "N/A";
+        document.getElementById('windGusts').textContent = "N/A";
+        document.getElementById('windDirText').textContent = "N/A";
+        document.getElementById('conditionsStatus').className = "pill status-danger";
+        document.getElementById('conditionsStatus').textContent = "Wind error";
+      }
+    }
+
+    // Bootstrap
+    (async () => {
+      try {
+        await loadMarine();
+
+        try {
+          await loadWindPreferred(); // Try PWS first
+        } catch (err) {
+          console.warn("Preferred wind failed, using fallback:", err);
+          await loadWindFallback();  // Fallback to Open-Meteo
+        }
+
+        document.getElementById('updatedLabel').textContent =
+          "Updated: " + new Date().toLocaleString("en-US", { timeZone: tz });
+      } catch (e) {
+        console.error("Widget error:", e);
+        document.getElementById('conditionsStatus').className = "pill status-danger";
+        document.getElementById('conditionsStatus').textContent = "Data error";
+        ["waveHeight","wavePeriod","waveDirection","sst","windSpeed","windGusts","windDirText"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el && (!el.textContent || el.textContent === "—")) el.textContent = "N/A";
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
