@@ -55,24 +55,24 @@ jobs:
             ctx.textAlign = 'left';
             ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
             ctx.fillText('Weather', L, 280);
-            ctx.font = '900 120px system-ui'; ctx.fillStyle = '#164e63';
+            ctx.font = '900 100px system-ui'; ctx.fillStyle = '#164e63';
             ctx.fillText(`${Math.round(cur.temperature_2m)}°`, L, 460);
-            ctx.font = '56px system-ui'; ctx.fillStyle = '#475569';
+            ctx.font = '50px system-ui'; ctx.fillStyle = '#475569';
             ctx.fillText(`Feels ${Math.round(cur.apparent_temperature)}°F`, L, 510);
             ctx.fillText(wmo(cur.weathercode), L, 570);
             ctx.fillText(`Wind ${Math.round(cur.windspeed_10m)} mph ${compass(cur.winddirection_10m)}`, L, 630);
 
             ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
             ctx.fillText('Marine', R, 280);
-            ctx.font = '700 120px system-ui'; ctx.fillStyle = '#164e63';
+            ctx.font = '700 100px system-ui'; ctx.fillStyle = '#164e63';
             ctx.fillText(`${(h.wave_height[12]*3.28).toFixed(1)} ft`, R, 460);
-            ctx.font = '56px system-ui'; ctx.fillStyle = '#475569';
+            ctx.font = '50px system-ui'; ctx.fillStyle = '#475569';
             ctx.fillText(`Today • ${compass(h.wave_direction[12])}`, R, 510);
-            ctx.font = '64px system-ui'; ctx.fillStyle = '#1e293b';
+            ctx.font = '50px system-ui'; ctx.fillStyle = '#1e293b';
             ctx.fillText(`Tomorrow → ${(h.wave_height[36]*3.28).toFixed(1)} ft`, R, 620);
             ctx.fillText(`Day After → ${(h.wave_height[60]*3.28).toFixed(1)} ft`, R, 700);
 
-            ctx.font = '48px system-ui'; ctx.fillStyle = '#1e293b';
+            ctx.font = '50px system-ui'; ctx.fillStyle = '#1e293b';
             ['Today','Tomorrow','Day After'].forEach((d,i) => {
               const hi = Math.round(daily.temperature_2m_max[i]);
               const lo = Math.round(daily.temperature_2m_min[i]);
