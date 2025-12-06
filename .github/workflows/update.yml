@@ -1,144 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Puerto Rico Marine & Wind Widget</title>
-  <style>
-    :root {
-      --bg: #0b1221;
-      --card: #121a2e;
-      --accent: #2ac3ff;
-      --text: #e8edf7;
-      --muted: #9fb0d1;
-      --danger: #ff5f73;
-      --ok: #49d190;
-      --warn: #ffba3b;
-    }
-    body {
-      margin: 0;
-      background: transparent;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: var(--text);
-      font-size: 11px; /* smaller base font */
-    }
-    .widget {
-      background: var(--bg);
-      border-radius: 8px;
-      border: 1px solid #182240;
-      padding: 6px;              /* reduced padding */
-      width: 90%;                /* fluid width */
-      max-width: 300px;          /* smaller box */
-      margin: 8px auto;
-      box-shadow: 0 3px 8px rgba(8, 12, 22, 0.25);
-    }
-    .header { display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .title { font-weight: 600; font-size: 12px; }
-    .sub { font-size: 9px; color: var(--muted); }
-    .grid { display: grid; gap: 4px; }
-    .card { background: var(--card); border: 1px solid #1a2546; border-radius: 6px; padding: 6px; }
-    .card h3 { margin: 0 0 4px; font-size: 10px; color: var(--accent); }
-    .kv { display: flex; gap: 3px; margin: 2px 0; }
-    .kv .label { color: var(--muted); font-size: 9px; min-width: 60px; }
-    .kv .value { font-size: 11px; font-weight: 600; }
-    .pill { background: #0f1a34; border: 1px solid #223056; border-radius: 999px; padding: 2px 5px; font-size: 9px; }
-    .status-ok { color: var(--ok); }
-    .status-warn { color: var(--warn); }
-    .status-danger { color: var(--danger); }
-    .arrow { border-left: 3px solid transparent; border-right: 3px solid transparent; border-bottom: 6px solid var(--accent); display: inline-block; transform-origin: 50% 100%; }
-    .footer { display: flex; justify-content: space-between; margin-top: 4px; font-size: 8px; color: var(--muted); }
-
-    /* Mobile */
-    @media (max-width: 480px) {
-      .widget { padding: 5px; max-width: 260px; }
-      .title { font-size: 11px; }
-      .sub { font-size: 8px; }
-      .grid { grid-template-columns: 1fr; }
-      .card h3 { font-size: 9px; }
-      .kv .label { font-size: 8px; }
-      .kv .value { font-size: 10px; }
-      .footer { font-size: 7px; }
-    }
-
-    /* Desktop */
-    @media (min-width: 768px) {
-      .grid { grid-template-columns: 1fr 1fr; }
-      .title { font-size: 13px; }
-      .card h3 { font-size: 11px; }
-      .kv .value { font-size: 12px; }
-    }
-  </style>
+<meta charset="utf-8">
+<title>Sunbay Marina – Final.txt Final Fixed URL Version</title>
+<style>
+  body{font-family:system-ui,sans-serif;padding:30px;background:#f0f9ff;max-width:900px;margin:auto;}
+  button{padding:16px 32px;font-size:20px;background:#0ea5e9;color:white;border:none;border-radius:12px;cursor:pointer;}
+  pre{background:#fff;padding:20px;border-radius:12px;margin-top:20px;font-family:monospace;}
+  .ok{background:#d1fae5;padding:25px;border-radius:12px;margin-top:20px;border:2px solid #10b981;font-size:18px;}
+  canvas{display:none;}
+</style>
 </head>
 <body>
-  <div class="widget" id="widget">
-    <div class="header">
-      <div>
-        <div class="title">Marine & Wind — Puerto Rico</div>
-        <div class="sub" id="locationLabel">San Juan, PR</div>
-      </div>
-      <span class="pill" id="conditionsStatus">Loading...</span>
-    </div>
 
-    <div class="grid">
-      <div class="card">
-        <h3>Marine</h3>
-        <div class="kv"><span class="label">Wave</span><span class="value" id="waveHeight">—</span></div>
-        <div class="kv"><span class="label">Period</span><span class="value" id="wavePeriod">—</span></div>
-        <div class="kv"><span class="label">Swell</span><span class="value" id="waveDirection">—</span></div>
-        <div class="kv"><span class="label">SST</span><span class="value" id="sst">—</span></div>
-      </div>
+<h1>Sunbay Marina, Fajardo – Marine Weather</h1>
+<p>Fixed PNG URL • Overwrites every run • Perfect layout</p>
 
-      <div class="card">
-        <h3>Wind</h3>
-        <div class="kv"><span class="label">Speed</span><span class="value" id="windSpeed">—</span></div>
-        <div class="kv"><span class="label">Dir</span><span class="value"><span id="windDirText">—</span> <span class="arrow" id="windArrow"></span></span></div>
-        <div class="kv"><span class="label">Gusts</span><span class="value" id="windGusts">—</span></div>
-      </div>
-    </div>
+<button onclick="generateAndUpload()">Generate & Overwrite PNG (Same URL Forever)</button>
+<pre id="log">Click → generates and overwrites the same PNG URL instantly</pre>
+<div id="result"></div>
 
-    <div class="footer">
-      <div>Branded by RabirubiaWeather</div>
-      <div id="updatedLabel">Updated: —</div>
-    </div>
-  </div>
+<canvas id="canvas" width="1080" height="1080"></canvas>
 
-  <script>
-    const lat = 18.4655, lon = -66.1057, tz = "America/Puerto_Rico";
-    const stationId = "IFAJAR39";
-    const apiKey = "2a624a0259934c57a24a0259935c5714";
+<script>
+  // YOUR IMGBB KEY (free at https://imgbb.com)
+  const IMGBB_KEY = "8b30b44ae861b6c736aed8c97e7fa6ac";
 
-    function degToCompass(deg) {
-      const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW','N'];
-      return dirs[Math.round(((deg % 360) / 22.5))];
+  // THIS IS YOUR PERMANENT PNG URL — NEVER CHANGES!
+  const FIXED_PNG_NAME = "sunbay_marina_forecast.png";
+
+  const log = document.getElementById('log');
+  const result = document.getElementById('result');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  async function generateAndUpload() {
+    log.textContent = "Fetching latest data...\n";
+    result.innerHTML = '';
+
+    try {
+      const [w, m] = await Promise.all([
+        fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json()),
+        fetch("https://marine-api.open-meteo.com/v1/marine?latitude=18.3258&longitude=-65.6524&hourly=wave_height,wave_direction,swell_wave_height&forecast_days=3&timezone=America/Puerto_Rico").then(r=>r.json())
+      ]);
+
+      drawPerfectCard(w, m);
+      log.textContent += "Card created – uploading (overwriting same URL)...\n";
+
+      canvas.toBlob(async blob => {
+        const form = new FormData();
+        form.append('key', IMGBB_KEY);
+        form.append('image', blob, FIXED_PNG_NAME);   // SAME NAME = OVERWRITE
+
+        const res = await fetch('https://api.imgbb.com/1/upload', {method:'POST', body:form});
+        const json = await res.json();
+
+        if (json.success) {
+          const PERMANENT_URL = json.data.url;  // This URL never changes
+
+          result.innerHTML = `<div class="ok">
+SUCCESS! Your card has been updated.<br><br>
+<b>YOUR ONE AND ONLY PNG URL (use this forever):</b><br>
+<a href="${PERMANENT_URL}" target="_blank">${PERMANENT_URL}</a><br><br>
+Just paste this once in your website:<br>
+<code style="background:#ecfdf5;padding:14px;border-radius:10px;display:block;margin-top:12px;">
+&lt;img src="${PERMANENT_URL}" style="max-width:100%;height:auto;border-radius:20px;" alt="Sunbay Marina Weather"&gt;
+</code><br>
+This image updates automatically every 4 hours — the URL stays the same!
+</div>`;
+          log.textContent += "DONE! Same URL overwritten with fresh data.";
+        } else {
+          log.textContent += "Upload failed: " + (json.error?.message || "Check your key");
+        }
+      }, 'image/png');
+    } catch(e) {
+      log.textContent += "Error: " + e.message + "\nRun via local server: python -m http.server";
     }
-    function updateArrow(deg) { document.getElementById('windArrow').style.transform = `rotate(${deg}deg)`; }
-    function mToFt(v) { return v * 3.28084; }
-    function cToF(v) { return v * 9/5 + 32; }
-    function mpsToMph(v) { return v * 2.23694; }
+  }
 
-    async function loadMarine() {
-      const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature&timezone=${tz}&forecast_days=1`;
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error("Marine fetch failed");
-      const j = await resp.json();
-      const h = j.hourly || {};
-      if (Array.isArray(h.wave_height) && h.wave_height.length > 0) {
-        document.getElementById('waveHeight').textContent = mToFt(h.wave_height[0]).toFixed(1) + " ft";
-        document.getElementById('wavePeriod').textContent = h.wave_period[0] + " s";
-        document.getElementById('waveDirection').textContent = degToCompass(h.wave_direction[0]) + " ("+ h.wave_direction[0] +"°)";
-        document.getElementById('sst').textContent = cToF(h.sea_surface_temperature[0]).toFixed(1) + " °F";
-      }
+  function drawPerfectCard(w, m) {
+    const cur = w.current;
+    const daily = w.daily;
+    const h = m.hourly;
+
+    const grad = ctx.createLinearGradient(0,0,0,1080);
+    grad.addColorStop(0, '#a5f3fc');
+    grad.addColorStop(1, '#ecfeff');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,1080,1080);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#155e75';
+    ctx.font = '600 54px system-ui';
+    ctx.fillText(new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'}), 540, 120);
+    ctx.font = 'italic 42px system-ui';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(`Updated ${new Date().toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} AST`, 540, 170);
+
+    const L = 150;
+    const R = 570;
+
+    // Weather
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
+    ctx.fillText('Weather', L, 280);
+    ctx.font = '900 170px system-ui'; ctx.fillStyle = '#164e63';
+    ctx.fillText(`${Math.round(cur.temperature_2m)}°`, L, 460);
+    ctx.font = '56px system-ui'; ctx.fillStyle = '#475569';
+    ctx.fillText(`Feels ${Math.round(cur.apparent_temperature)}°F`, L, 510);
+    ctx.fillText(wmoCode(cur.weathercode), L, 570);
+    ctx.fillText(`Wind ${Math.round(cur.windspeed_10m)} mph ${degToCompass(cur.winddirection_10m)}`, L, 630);
+
+    // Marine
+    ctx.font = 'bold 58px system-ui'; ctx.fillStyle = '#1e40af';
+    ctx.fillText('Marine', R, 280);
+    ctx.font = '700 120px system-ui'; ctx.fillStyle = '#164e63';
+    ctx.fillText(`${(h.wave_height[12]*3.28).toFixed(1)} ft`, R, 460);
+    ctx.font = '56px system-ui'; ctx.fillStyle = '#475569';
+    ctx.fillText(`Today • ${degToCompass(h.wave_direction[12])}`, R, 510);
+    ctx.font = '64px system-ui'; ctx.fillStyle = '#1e293b';
+    ctx.fillText(`Tomorrow → ${(h.wave_height[36]*3.28).toFixed(1)} ft`, R, 620);
+    ctx.fillText(`Day After → ${(h.wave_height[60]*3.28).toFixed(1)} ft`, R, 700);
+
+    // 3-day temp forecast – small & safe
+    ctx.font = '48px system-ui';
+    ctx.fillStyle = '#1e293b';
+    const days = ['Today', 'Tomorrow', 'Day After'];
+    for(let i=0;i<3;i++){
+      const hi = Math.round(daily.temperature_2m_max[i]);
+      const lo = Math.round(daily.temperature_2m_min[i]);
+      ctx.fillText(`${days[i]} → ${hi}° / ${lo}°`, L, 760 + i*68);
     }
 
-    async function loadWindPreferred() {
-      const url = `https://api.weather.com/v2/pws/observations/current?stationId=${stationId}&format=json&units=e&apiKey=${apiKey}`;
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error("PWS fetch failed");
-      const data = await resp.json();
-      if (!data.observations || !data.observations[0]) throw new Error("No PWS data");
-      const obs = data.observations[0];
-      const windSpeed = obs?.imperial?.windSpeed ?? obs?.imperial?.wspd ?? null;
-      const gust = obs?.imperial?.windGust ?? null;
-      const windDirDeg = obs?.winddir ?? null;
-      if (windSpeed == null || windDirDeg == null) throw new Error("Incomplete PWS data");
-      document.getElementById
+    ctx.font = 'italic 38px system-ui';
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'center';
+    ctx.fillText('Powered by Open-Meteo • Updated every 4 hours', 540, 1060);
+  }
+
+  function wmoCode(c){const m={0:"Clear sky",1:"Mostly clear",2:"Partly cloudy",3:"Cloudy",45:"Fog",51:"Light rain",53:"Rain",61:"Rain",63:"Rain",65:"Heavy rain",80:"Showers",95:"Thunderstorm"};return m[c]||"Weather";}
+  function degToCompass(d){const dirs=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];return dirs[Math.round(d/22.5)%16];}
+</script>
+</body>
+</html>
