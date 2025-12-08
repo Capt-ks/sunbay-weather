@@ -133,15 +133,14 @@ jobs:
           }
 
           function compass(deg) {
-            const dirs = ["N","NNE","S","W","NNE","ENE","ESE","SSE","SSW","WSW","WNW","NNW"];
+            const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
             return dirs[Math.round(deg / 22.5) % 16];
           }
 
           run().catch(err => {
-            console.error(err);
+            console.error('Error in run():', err);
             process.exit(1);
           });
-          }
           EOF
 
           node generate.js
@@ -151,6 +150,6 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add sunbay_marina_forecast.png
-          git diff --staged --quiet || git commit -m "Update Sunbay weather card with logo $(date -u +\%Y-\%m-\%dT\%H:\%M:\%MZ)" && git push
+          git diff --staged --quiet || git commit -m "Update Sunbay weather card with logo $(date -u +%Y-%m-%dT%H:%M:%SZ)" && git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
