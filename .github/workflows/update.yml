@@ -32,7 +32,7 @@ jobs:
             const [w, m, logo] = await Promise.all([
               fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m&daily=temperature_2m_max,temperature_2m_min&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json()),
               fetch("https://marine-api.open-meteo.com/v1/marine?latitude=18.3258&longitude=-65.6524&hourly=wave_height,wave_direction&forecast_days=3&timezone=America/Puerto_Rico").then(r=>r.json()),
-              loadImage("https://static.wixstatic.com/media/80c250_bd229fa4f41b486c8f75348263937e67~mv2.png/v1/fill/w_234,h_234,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo%20RWeather%20Round%20-%20Transparent.png")
+              loadImage("https://static.wixstatic.com/media/80c250_b1146919dfe046429a96648c59e2c413~mv2.png/v1/fill/w_234,h_234,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/RWRoundLogoTransp.png")
             ]);
 
             drawCard(w, m, astTime, logo);
