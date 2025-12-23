@@ -91,12 +91,12 @@ jobs:
 
             let y = contentTop + 90;
 
-            ctx.font = '900 78px system-ui';
+            ctx.font = '900 70px system-ui';
             ctx.fillStyle = '#164e63';
             ctx.fillText(`${Math.round(cur.temperature_2m)}°`, LEFT, y);
             y += 70;
 
-            ctx.font = '38px system-ui';
+            ctx.font = '30px system-ui';
             ctx.fillStyle = '#475569';
             ctx.fillText(`Feels ${Math.round(cur.apparent_temperature)}°F`, LEFT, y);
             y += 42;
@@ -146,12 +146,12 @@ jobs:
 
             let my = contentTop + 90;
 
-            ctx.font = '700 78px system-ui';
+            ctx.font = '700 70px system-ui';
             ctx.fillStyle = '#164e63';
             ctx.fillText(`${(h.wave_height[12]*3.28).toFixed(1)} ft`, RIGHT, my);
             my += 70;
 
-            ctx.font = '38px system-ui';
+            ctx.font = '30px system-ui';
             ctx.fillStyle = '#475569';
             ctx.fillText(`Today • ${compass(h.wave_direction[12])}`, RIGHT, my);
             my += 42;
@@ -163,7 +163,7 @@ jobs:
             ctx.fillText(`Day After → ${(h.wave_height[60]*3.28).toFixed(1)} ft`, RIGHT, my);
             my += 52;
 
-            ctx.font = '38px system-ui';
+            ctx.font = '30px system-ui';
             ctx.fillStyle = '#1e293b';
             ['Today','Tomorrow','Day After'].forEach((day,i) => {
               const hi = Math.round(daily.temperature_2m_max[i]);
