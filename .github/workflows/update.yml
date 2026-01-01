@@ -37,29 +37,26 @@ jobs:
             return (typeof v === "number" ? v : 0).toFixed(digits);
           }
 
-          // === CORRECT MOON PHASE NAME MAPPING ===
-          function moonPhaseName(v) {
-            if (v < 0.0625) return "New Moon";
-            if (v < 0.1875) return "Waxing Crescent";
-            if (v < 0.3125) return "First Quarter";
-            if (v < 0.4375) return "Waxing Gibbous";
-            if (v < 0.5625) return "Full Moon";
-            if (v < 0.6875) return "Waning Gibbous";
-            if (v < 0.8125) return "Last Quarter";
-            if (v < 0.9375) return "Waning Crescent";
-            return "New Moon";
+          // === CORRECT MOON PHASE NAME MAPPING (ASTRONOMY API ALREADY PROVIDES NAME) ===
+          function moonPhaseNameFromAPI(name) {
+            return name || "Moon";
           }
 
           async function run() {
-            const w = await fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m,precipitation,rain,showers&hourly=precipitation_probability,precipitation,rain,showers&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,moon_phase&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json());
+            // WEATHER
+            const w = await fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m,precipitation,rain,showers&hourly=precipitation_probability,precipitation,rain,showers&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json());
 
+            // MARINE
             const m = await fetch("https://marine-api.open-meteo.com/v1/marine?latitude=18.3258&longitude=-65.6524&hourly=wave_height,wave_direction,wave_period&forecast_days=3&timezone=America/Puerto_Rico").then(r=>r.json());
+
+            // ASTRONOMY (CORRECT MOON PHASE)
+            const astro = await fetch("https://api.open-meteo.com/v1/astronomy?latitude=18.3258&longitude=-65.6524&timezone=America/Puerto_Rico").then(r=>r.json());
 
             const logo = await loadImage("https://static.wixstatic.com/media/80c250_b1146919dfe046429a96648c59e2c413~mv2.png/v1/fill/w_234,h_234,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/RWRoundLogoTransp.png");
 
             // === SAFE MOON PHASE EXTRACTION ===
-            const moonRaw = w?.daily?.moon_phase?.[0];
-            const moonValue = typeof moonRaw === "number" ? moonRaw : 0;
+            const moonName = astro?.daily?.moon_phase_name?.[0] || "Moon";
+            const moonValue = astro?.daily?.moon_phase?.[0] || 0;
 
             // === CORRECT ICON INDEX (0–27) ===
             const moonIndex = Math.floor(moonValue * 28) % 28;
@@ -74,12 +71,12 @@ jobs:
               console.warn("Moon icon failed to load, continuing without icon.");
             }
 
-            drawCard(w, m, astTime, logo, moonIcon, moonValue);
+            drawCard(w, m, astro, astTime, logo, moonIcon, moonName, moonValue);
             fs.writeFileSync('sunbay_marina_forecast.png', canvas.toBuffer());
             console.log('Perfect card generated!');
           }
 
-          function drawCard(w, m, astTime, logo, moonIcon, moonValue) {
+          function drawCard(w, m, astro, astTime, logo, moonIcon, moonName, moonValue) {
             const cur = w.current || {};
             const daily = w.daily || {};
             const h = m.hourly || {};
@@ -113,7 +110,7 @@ jobs:
             ctx.font = 'italic 38px system-ui';
             ctx.fillText(`Inshore-Fajardo Bay, PR • ${astTime.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} AST`, textX, logoCenterY + 28);
 
-            // === MOON PHASE (SAFE + ACCURATE) ===
+            // === MOON PHASE (ACCURATE) ===
             const moonX = textX;
             const moonY = logoCenterY + 90;
 
@@ -124,7 +121,7 @@ jobs:
             ctx.fillStyle = '#334155';
             ctx.font = '28px system-ui';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`Moon: ${moonPhaseName(moonValue)}`, moonX + 75, moonY + 30);
+            ctx.fillText(`Moon: ${moonName}`, moonX + 75, moonY + 30);
 
             // === MAIN CONTENT ===
             const contentTop = 320;
@@ -253,6 +250,6 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add sunbay_marina_forecast.png
-          git diff --staged --quiet || git commit -m "Update weather card - correct moon phase mapping + safeFixed" && git push
+          git diff --staged --quiet || git commit -m "Update weather card - astronomy API moon phase" && git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
