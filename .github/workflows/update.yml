@@ -37,6 +37,21 @@ jobs:
             return (typeof v === "number" ? v : 0).toFixed(digits);
           }
 
+          // === MOON PHASE NAME FROM FRACTION (0–1) ===
+          function moonPhaseName(v) {
+            if (typeof v !== "number") return "Moon";
+            const x = ((v % 1) + 1) % 1; // normalize to [0,1)
+            if (x < 0.0625) return "New Moon";
+            if (x < 0.1875) return "Waxing Crescent";
+            if (x < 0.3125) return "First Quarter";
+            if (x < 0.4375) return "Waxing Gibbous";
+            if (x < 0.5625) return "Full Moon";
+            if (x < 0.6875) return "Waning Gibbous";
+            if (x < 0.8125) return "Last Quarter";
+            if (x < 0.9375) return "Waning Crescent";
+            return "New Moon";
+          }
+
           async function run() {
             // WEATHER
             const w = await fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m,precipitation,rain,showers&hourly=precipitation_probability,precipitation,rain,showers&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json());
@@ -44,17 +59,18 @@ jobs:
             // MARINE
             const m = await fetch("https://marine-api.open-meteo.com/v1/marine?latitude=18.3258&longitude=-65.6524&hourly=wave_height,wave_direction,wave_period&forecast_days=3&timezone=America/Puerto_Rico").then(r=>r.json());
 
-            // ASTRONOMY — CORRECT MOON PHASE
-            const astro = await fetch("https://api.open-meteo.com/v1/astronomy?latitude=18.3258&longitude=-65.6524&daily=moon_phase,moon_phase_name&timezone=America/Puerto_Rico").then(r=>r.json());
+            // ASTRONOMY — USE ONLY moon_phase FRACTION
+            const astro = await fetch("https://api.open-meteo.com/v1/astronomy?latitude=18.3258&longitude=-65.6524&daily=moon_phase&timezone=America/Puerto_Rico").then(r=>r.json());
 
             const logo = await loadImage("https://static.wixstatic.com/media/80c250_b1146919dfe046429a96648c59e2c413~mv2.png/v1/fill/w_234,h_234,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/RWRoundLogoTransp.png");
 
             // === SAFE MOON PHASE EXTRACTION ===
-            const moonName = astro?.daily?.moon_phase_name?.[0] || "Moon";
-            const moonValue = astro?.daily?.moon_phase?.[0] || 0;
+            const moonValueRaw = astro?.daily?.moon_phase?.[0];
+            const moonValue = typeof moonValueRaw === "number" ? moonValueRaw : 0;
+            const moonName = moonPhaseName(moonValue);
 
-            // === CORRECT ICON INDEX (0–27) ===
-            const moonIndex = Math.floor(moonValue * 28) % 28;
+            // === ICON INDEX FROM FRACTION (0–27) ===
+            const moonIndex = Math.floor(((moonValue % 1) + 1) % 1 * 28) % 28;
 
             // === PNG MOON ICON ===
             const moonUrl = `https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/png/64/moon-phase-${String(moonIndex).padStart(2,'0')}.png`;
@@ -105,7 +121,7 @@ jobs:
             ctx.font = 'italic 38px system-ui';
             ctx.fillText(`Inshore-Fajardo Bay, PR • ${astTime.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} AST`, textX, logoCenterY + 28);
 
-            // === MOON PHASE (ACCURATE) ===
+            // === MOON PHASE (ACCURATE, LOCAL NAME) ===
             const moonX = textX;
             const moonY = logoCenterY + 90;
 
@@ -230,7 +246,7 @@ jobs:
           }
 
           function compass(d){
-            const dirs=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+            const dirs=["N","NNE","NE","ENE","E","ESE","SE","S","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
             return dirs[Math.round(d/22.5)%16];
           }
 
@@ -245,6 +261,6 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add sunbay_marina_forecast.png
-          git diff --staged --quiet || git commit -m "Update weather card - astronomy API moon phase fix" && git push
+          git diff --staged --quiet || git commit -m "Update weather card - astronomy moon phase via fraction" && git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
