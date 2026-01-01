@@ -39,9 +39,12 @@ jobs:
 
             const logo = await loadImage("https://static.wixstatic.com/media/80c250_b1146919dfe046429a96648c59e2c413~mv2.png/v1/fill/w_234,h_234,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/RWRoundLogoTransp.png");
 
-            // === MOON ICON (PNG + safe fallback) ===
-            const moonValue = w?.daily?.moon_phase?.[0] ?? 0;
+            // === SAFE MOON PHASE EXTRACTION ===
+            const moonRaw = w?.daily?.moon_phase?.[0];
+            const moonValue = typeof moonRaw === "number" ? moonRaw : 0;
             const moonIndex = Math.round(moonValue * 27);
+
+            // === PNG MOON ICON ===
             const moonUrl = `https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/png/64/moon-phase-${String(moonIndex).padStart(2,'0')}.png`;
 
             let moonIcon = null;
@@ -51,15 +54,15 @@ jobs:
               console.warn("Moon icon failed to load, continuing without icon.");
             }
 
-            drawCard(w, m, astTime, logo, moonIcon);
+            drawCard(w, m, astTime, logo, moonIcon, moonValue);
             fs.writeFileSync('sunbay_marina_forecast.png', canvas.toBuffer());
             console.log('Perfect card generated!');
           }
 
-          function drawCard(w, m, astTime, logo, moonIcon) {
-            const cur = w.current;
-            const daily = w.daily;
-            const h = m.hourly;
+          function drawCard(w, m, astTime, logo, moonIcon, moonValue) {
+            const cur = w.current || {};
+            const daily = w.daily || {};
+            const h = m.hourly || {};
 
             // Background
             const grad = ctx.createLinearGradient(0,0,0,1080);
@@ -90,7 +93,7 @@ jobs:
             ctx.font = 'italic 38px system-ui';
             ctx.fillText(`Inshore-Fajardo Bay, PR • ${astTime.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} AST`, textX, logoCenterY + 28);
 
-            // === MOON PHASE (PNG icon + label) ===
+            // === MOON PHASE (SAFE) ===
             const moonX = textX;
             const moonY = logoCenterY + 90;
 
@@ -101,7 +104,7 @@ jobs:
             ctx.fillStyle = '#334155';
             ctx.font = '28px system-ui';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`Moon: ${moonPhaseName(w.daily.moon_phase[0])}`, moonX + 75, moonY + 30);
+            ctx.fillText(`Moon: ${moonPhaseName(moonValue)}`, moonX + 75, moonY + 30);
 
             // === MAIN CONTENT ===
             const contentTop = 320;
@@ -118,20 +121,20 @@ jobs:
 
             ctx.font = '900 70px system-ui';
             ctx.fillStyle = '#164e63';
-            ctx.fillText(`${Math.round(cur.temperature_2m)}°`, LEFT, y);
+            ctx.fillText(`${Math.round(cur.temperature_2m || 0)}°`, LEFT, y);
             y += 70;
 
             ctx.font = '30px system-ui';
             ctx.fillStyle = '#475569';
-            ctx.fillText(`Feels ${Math.round(cur.apparent_temperature)}°F`, LEFT, y);
+            ctx.fillText(`Feels ${Math.round(cur.apparent_temperature || 0)}°F`, LEFT, y);
             y += 42;
 
             ctx.font = '30px system-ui';
             ctx.fillStyle = '#1e293b';
 
             ['Tomorrow', 'Day After'].forEach((day, i) => {
-              const hi = Math.round(daily.temperature_2m_max[i + 1]);
-              const lo = Math.round(daily.temperature_2m_min[i + 1]);
+              const hi = Math.round(daily.temperature_2m_max?.[i + 1] || 0);
+              const lo = Math.round(daily.temperature_2m_min?.[i + 1] || 0);
               ctx.fillText(`${day} → ${hi}° / ${lo}°`, LEFT, y + i * 38);
             });
 
@@ -140,23 +143,23 @@ jobs:
             ctx.fillText(wmo(cur.weathercode), LEFT, y);
             y += 42;
 
-            ctx.fillText(`Wind ${Math.round(cur.windspeed_10m)} mph ${compass(cur.winddirection_10m)}`, LEFT, y);
+            ctx.fillText(`Wind ${Math.round(cur.windspeed_10m || 0)} mph ${compass(cur.winddirection_10m || 0)}`, LEFT, y);
             y += 42;
 
-            ctx.fillText(`Rain: ${cur.rain?.toFixed(2) || 0} in/hr`, LEFT, y);
+            ctx.fillText(`Rain: ${(cur.rain || 0).toFixed ? cur.rain.toFixed(2) : "0.00"} in/hr`, LEFT, y);
             y += 42;
 
-            const precipProb = w.hourly.precipitation_probability[0];
+            const precipProb = w.hourly?.precipitation_probability?.[0] ?? 0;
             ctx.fillText(`Chance: ${precipProb}%`, LEFT, y);
             y += 42;
 
-            const todayRain = w.daily.precipitation_sum[0];
-            const todayProb = w.daily.precipitation_probability_max[0];
+            const todayRain = daily.precipitation_sum?.[0] ?? 0;
+            const todayProb = daily.precipitation_probability_max?.[0] ?? 0;
             ctx.fillText(`Today: ${todayRain.toFixed(2)} in • ${todayProb}%`, LEFT, y);
             y += 42;
 
-            const tomorrowRain = w.daily.precipitation_sum[1];
-            const tomorrowProb = w.daily.precipitation_probability_max[1];
+            const tomorrowRain = daily.precipitation_sum?.[1] ?? 0;
+            const tomorrowProb = daily.precipitation_probability_max?.[1] ?? 0;
             ctx.fillText(`Tomorrow: ${tomorrowRain.toFixed(2)} in • ${tomorrowProb}%`, LEFT, y);
             y += 52;
 
@@ -184,22 +187,22 @@ jobs:
 
             ctx.font = '700 70px system-ui';
             ctx.fillStyle = '#164e63';
-            ctx.fillText(`${(h.wave_height[12]*3.28).toFixed(1)} ft`, RIGHT, my);
+            ctx.fillText(`${((h.wave_height?.[12] || 0) * 3.28).toFixed(1)} ft`, RIGHT, my);
             my += 70;
 
             ctx.font = '30px system-ui';
             ctx.fillStyle = '#475569';
-            ctx.fillText(`Today • ${compass(h.wave_direction[12])}`, RIGHT, my);
+            ctx.fillText(`Today • ${compass(h.wave_direction?.[12] || 0)}`, RIGHT, my);
             my += 42;
 
-            ctx.fillText(`Period ${h.wave_period[12].toFixed(1)} s`, RIGHT, my);
+            ctx.fillText(`Period ${(h.wave_period?.[12] || 0).toFixed(1)} s`, RIGHT, my);
             my += 42;
 
             ctx.fillStyle = '#1e293b';
-            ctx.fillText(`Tomorrow → ${(h.wave_height[36]*3.28).toFixed(1)} ft`, RIGHT, my);
+            ctx.fillText(`Tomorrow → ${((h.wave_height?.[36] || 0) * 3.28).toFixed(1)} ft`, RIGHT, my);
             my += 42;
 
-            ctx.fillText(`Day After → ${(h.wave_height[60]*3.28).toFixed(1)} ft`, RIGHT, my);
+            ctx.fillText(`Day After → ${((h.wave_height?.[60] || 0) * 3.28).toFixed(1)} ft`, RIGHT, my);
             my += 52;
 
             // FOOTER
@@ -238,6 +241,6 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add sunbay_marina_forecast.png
-          git diff --staged --quiet || git commit -m "Update weather card - add moon phase PNG" && git push
+          git diff --staged --quiet || git commit -m "Update weather card - moon phase PNG + safe guards" && git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
