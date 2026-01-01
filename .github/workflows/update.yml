@@ -39,7 +39,7 @@ jobs:
 
           // === MOON PHASE NAME FROM FRACTION (0–1) ===
           function moonPhaseName(v) {
-            if (typeof v !== "number") return "Moon";
+            if (typeof v !== "number") return "Unknown";
             const x = ((v % 1) + 1) % 1; // normalize to [0,1)
             if (x < 0.0625) return "New Moon";
             if (x < 0.1875) return "Waxing Crescent";
@@ -54,26 +54,53 @@ jobs:
 
           async function run() {
             // WEATHER
-            const w = await fetch("https://api.open-meteo.com/v1/forecast?latitude=18.3258&longitude=-65.6524&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m,precipitation,rain,showers&hourly=precipitation_probability,precipitation,rain,showers&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph").then(r=>r.json());
+            const w = await fetch(
+              "https://api.open-meteo.com/v1/forecast" +
+              "?latitude=18.3258&longitude=-65.6524" +
+              "&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,winddirection_10m,precipitation,rain,showers" +
+              "&hourly=precipitation_probability,precipitation,rain,showers" +
+              "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max" +
+              "&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph"
+            ).then(r => r.json());
 
             // MARINE
-            const m = await fetch("https://marine-api.open-meteo.com/v1/marine?latitude=18.3258&longitude=-65.6524&hourly=wave_height,wave_direction,wave_period&forecast_days=3&timezone=America/Puerto_Rico").then(r=>r.json());
+            const m = await fetch(
+              "https://marine-api.open-meteo.com/v1/marine" +
+              "?latitude=18.3258&longitude=-65.6524" +
+              "&hourly=wave_height,wave_direction,wave_period" +
+              "&forecast_days=3&timezone=America/Puerto_Rico"
+            ).then(r => r.json());
 
-            // ASTRONOMY — USE ONLY moon_phase FRACTION
-            const astro = await fetch("https://api.open-meteo.com/v1/astronomy?latitude=18.3258&longitude=-65.6524&daily=moon_phase&timezone=America/Puerto_Rico").then(r=>r.json());
+            // ASTRONOMY — PROVIDE EXPLICIT DATE RANGE
+            const y = astTime.getFullYear();
+            const mo = String(astTime.getMonth() + 1).padStart(2, '0');
+            const d = String(astTime.getDate()).padStart(2, '0');
+            const dateStr = `${y}-${mo}-${d}`;
 
-            const logo = await loadImage("https://static.wixstatic.com/media/80c250_b1146919dfe046429a96648c59e2c413~mv2.png/v1/fill/w_234,h_234,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/RWRoundLogoTransp.png");
+            const astroUrl =
+              "https://api.open-meteo.com/v1/astronomy" +
+              `?latitude=18.3258&longitude=-65.6524` +
+              `&daily=moon_phase` +
+              `&timezone=America/Puerto_Rico` +
+              `&start_date=${dateStr}&end_date=${dateStr}`;
 
-            // === SAFE MOON PHASE EXTRACTION ===
+            const astro = await fetch(astroUrl).then(r => r.json());
+            console.log("Astronomy payload:", JSON.stringify(astro));
+
+            const logo = await loadImage(
+              "https://static.wixstatic.com/media/80c250_b1146919dfe046429a96648c59e2c413~mv2.png/v1/fill/w_234,h_234,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/RWRoundLogoTransp.png"
+            );
+
+            // === SAFE MOON PHASE EXTRACTION FROM ASTRONOMY ===
             const moonValueRaw = astro?.daily?.moon_phase?.[0];
             const moonValue = typeof moonValueRaw === "number" ? moonValueRaw : 0;
             const moonName = moonPhaseName(moonValue);
 
-            // === ICON INDEX FROM FRACTION (0–27) ===
+            // ICON INDEX FROM FRACTION (0–27)
             const moonIndex = Math.floor(((moonValue % 1) + 1) % 1 * 28) % 28;
 
-            // === PNG MOON ICON ===
-            const moonUrl = `https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/png/64/moon-phase-${String(moonIndex).padStart(2,'0')}.png`;
+            const moonUrl =
+              `https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/png/64/moon-phase-${String(moonIndex).padStart(2,'0')}.png`;
 
             let moonIcon = null;
             try {
@@ -99,7 +126,7 @@ jobs:
             ctx.fillStyle = grad;
             ctx.fillRect(0,0,1080,1080);
 
-            // === LOGO + HEADER ===
+            // LOGO + HEADER
             const logoSize = 200;
             const margin = 60;
             const logoX = margin;
@@ -115,13 +142,21 @@ jobs:
 
             ctx.fillStyle = '#155e75';
             ctx.font = '600 48px system-ui';
-            ctx.fillText(astTime.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'}), textX, logoCenterY - 28);
+            ctx.fillText(
+              astTime.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' }),
+              textX,
+              logoCenterY - 28
+            );
 
             ctx.fillStyle = '#64748b';
             ctx.font = 'italic 38px system-ui';
-            ctx.fillText(`Inshore-Fajardo Bay, PR • ${astTime.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})} AST`, textX, logoCenterY + 28);
+            ctx.fillText(
+              `Inshore-Fajardo Bay, PR • ${astTime.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })} AST`,
+              textX,
+              logoCenterY + 28
+            );
 
-            // === MOON PHASE (ACCURATE, LOCAL NAME) ===
+            // MOON PHASE
             const moonX = textX;
             const moonY = logoCenterY + 90;
 
@@ -134,7 +169,7 @@ jobs:
             ctx.textBaseline = 'middle';
             ctx.fillText(`Moon: ${moonName}`, moonX + 75, moonY + 30);
 
-            // === MAIN CONTENT ===
+            // MAIN CONTENT
             const contentTop = 320;
             const LEFT = 140;
             const RIGHT = 580;
@@ -171,7 +206,11 @@ jobs:
             ctx.fillText(wmo(cur.weathercode), LEFT, y);
             y += 42;
 
-            ctx.fillText(`Wind ${Math.round(cur.windspeed_10m || 0)} mph ${compass(cur.winddirection_10m || 0)}`, LEFT, y);
+            ctx.fillText(
+              `Wind ${Math.round(cur.windspeed_10m || 0)} mph ${compass(cur.winddirection_10m || 0)}`,
+              LEFT,
+              y
+            );
             y += 42;
 
             ctx.fillText(`Rain: ${safeFixed(cur.rain, 2)} in/hr`, LEFT, y);
@@ -241,12 +280,19 @@ jobs:
           }
 
           function wmo(c){
-            const m={0:"Clear sky",1:"Mostly clear",2:"Partly cloudy",3:"Cloudy",45:"Fog",51:"Light drizzle",61:"Rain",63:"Rain",65:"Heavy rain",80:"Showers",95:"Thunderstorm"};
+            const m={
+              0:"Clear sky",1:"Mostly clear",2:"Partly cloudy",3:"Cloudy",
+              45:"Fog",51:"Light drizzle",61:"Rain",63:"Rain",65:"Heavy rain",
+              80:"Showers",95:"Thunderstorm"
+            };
             return m[c]||"Weather";
           }
 
           function compass(d){
-            const dirs=["N","NNE","NE","ENE","E","ESE","SE","S","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+            const dirs=[
+              "N","NNE","NE","ENE","E","ESE","SE","SSE",
+              "S","SSW","SW","WSW","W","WNW","NW","NNW"
+            ];
             return dirs[Math.round(d/22.5)%16];
           }
 
@@ -261,6 +307,6 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add sunbay_marina_forecast.png
-          git diff --staged --quiet || git commit -m "Update weather card - astronomy moon phase via fraction" && git push
+          git diff --staged --quiet || git commit -m "Update weather card - astronomy moon phase with explicit date" && git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
