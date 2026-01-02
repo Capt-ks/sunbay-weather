@@ -38,24 +38,16 @@ jobs:
             return (typeof v === "number" ? v : 0).toFixed(digits);
           }
 
-          // Compute moon phase fraction in [0,1) using a simple, robust astronomical approximation.
-          // 0   ~= New Moon
-          // 0.25 ~= First Quarter
-          // 0.5  ~= Full Moon
-          // 0.75 ~= Last Quarter
           function moonPhaseFraction(date) {
-            const synodicMonth = 29.53058867; // days
-            // Known new moon reference: 2000-01-06 18:14 UTC (commonly used baseline)
+            const synodicMonth = 29.53058867;
             const ref = Date.UTC(2000, 0, 6, 18, 14, 0);
             const t = date.getTime();
-            const daysSince = (t - ref) / 86400000; // ms -> days
+            const daysSince = (t - ref) / 86400000;
             let phase = daysSince / synodicMonth;
-            phase = phase - Math.floor(phase); // normalize to [0,1)
-            return phase;
+            return phase - Math.floor(phase);
           }
 
           function moonPhaseName(f) {
-            if (typeof f !== "number") return "Unknown";
             const x = ((f % 1) + 1) % 1;
             if (x < 0.03) return "New Moon";
             if (x < 0.22) return "Waxing Crescent";
@@ -68,10 +60,8 @@ jobs:
             return "New Moon";
           }
 
-          // Simple illumination approximation from phase fraction.
           function moonIllumination(f) {
             const x = ((f % 1) + 1) % 1;
-            // 0 -> 0, 0.5 -> 1, 1 -> 0 (symmetric around full)
             return x <= 0.5 ? x * 2 : (1 - x) * 2;
           }
 
@@ -95,7 +85,6 @@ jobs:
           // ---------- Main run ----------
 
           async function run() {
-            // WEATHER
             const w = await fetch(
               "https://api.open-meteo.com/v1/forecast" +
               "?latitude=18.3258&longitude=-65.6524" +
@@ -105,7 +94,6 @@ jobs:
               "&timezone=America/Puerto_Rico&temperature_unit=fahrenheit&wind_speed_unit=mph"
             ).then(r => r.json());
 
-            // MARINE
             const m = await fetch(
               "https://marine-api.open-meteo.com/v1/marine" +
               "?latitude=18.3258&longitude=-65.6524" +
@@ -113,25 +101,15 @@ jobs:
               "&forecast_days=3&timezone=America/Puerto_Rico"
             ).then(r => r.json());
 
-            // ---------- LOCAL MOON PHASE (NO EXTERNAL API) ----------
-            // Use AST midnight for the card date.
+            // ---------- LOCAL MOON PHASE ----------
             const midnightAST = new Date(astTime);
             midnightAST.setHours(0, 0, 0, 0);
 
-            const moonFrac = moonPhaseFraction(midnightAST);     // 0–1
-            const moonIllum = moonIllumination(moonFrac);        // 0–1
-            const moonPhase = moonPhaseName(moonFrac);           // string
-            const moonIndex = Math.floor(moonFrac * 28) % 28;    // 0–27 for icons
+            const moonFrac = moonPhaseFraction(midnightAST);
+            const moonIllum = moonIllumination(moonFrac);
+            const moonPhase = moonPhaseName(moonFrac);
+            const moonIndex = Math.floor(moonFrac * 28) % 28;
 
-            console.log("Moon debug:", {
-              date: midnightAST.toISOString(),
-              fraction: moonFrac,
-              illumination: moonIllum,
-              phase: moonPhase,
-              iconIndex: moonIndex
-            });
-
-            // Load moon icon (local computation, remote sprite sheet)
             const moonIconUrl =
               `https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/png/64/moon-phase-${String(moonIndex).padStart(2,'0')}.png`;
 
@@ -139,7 +117,7 @@ jobs:
             try {
               moonIcon = await loadImage(moonIconUrl);
             } catch (e) {
-              console.warn("Moon icon failed to load, continuing without icon.");
+              console.warn("Moon icon failed to load.");
             }
 
             const logo = await loadImage(
@@ -148,7 +126,6 @@ jobs:
 
             drawCard(w, m, astTime, logo, moonIcon, moonPhase, moonIllum);
             fs.writeFileSync('sunbay_marina_forecast.png', canvas.toBuffer());
-            console.log('Perfect card generated!');
           }
 
           // ---------- Drawing ----------
@@ -199,21 +176,22 @@ jobs:
             const moonX = textX;
             const moonY = logoCenterY + 90;
 
-            if (moonIcon) {
-              ctx.drawImage(moonIcon, moonX, moonY, 60, 60);
-            }
+            if (moonIcon) ctx.drawImage(moonIcon, moonX, moonY, 60, 60);
 
             ctx.fillStyle = '#334155';
             ctx.font = '28px system-ui';
-            ctx.textBaseline = 'middle';
+            ctx.fillText(
+              `Moon Phase: ${moonPhase} • ${Math.round(moonIllum * 100)}%`,
+              moonX + 75,
+              moonY + 30
+            );
 
-            const illumPercent = Math.round(moonIllum * 100);
-            ctx.fillText(`Moon: ${moonPhase} • ${illumPercent}%`, moonX + 75, moonY + 30);
+            // EXTRA SPACING BELOW MOON BLOCK
+            const contentTop = 380;
 
-            // MAIN CONTENT
-            const contentTop = 320;
+            // COLUMN POSITIONS
             const LEFT = 140;
-            const RIGHT = 580;
+            const RIGHT = 620;
 
             // WEATHER COLUMN
             ctx.textAlign = 'left';
@@ -284,7 +262,7 @@ jobs:
             else summary += "Light winds.";
 
             ctx.fillText(summary, LEFT, y);
-            y += 60;
+            y += 80; // EXTRA SPACING
 
             // MARINE COLUMN
             ctx.font = 'bold 46px system-ui';
@@ -311,13 +289,13 @@ jobs:
             my += 42;
 
             ctx.fillText(`Day After → ${safeFixed((h.wave_height?.[60] ?? 0) * 3.28)} ft`, RIGHT, my);
-            my += 52;
+            my += 72; // EXTRA SPACING
 
             // FOOTER
             ctx.textAlign = 'center';
             ctx.font = 'italic 38px system-ui';
             ctx.fillStyle = '#64748b';
-            ctx.fillText('Powered by Rabirubia-API • Updated every 4 hours', 540, 1055);
+            ctx.fillText('Powered by Rabirubia-API • Updated every 4 hours', 540, 1035);
           }
 
           run().catch(e=>{console.error(e);process.exit(1);});
@@ -331,6 +309,6 @@ jobs:
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add sunbay_marina_forecast.png
-          git diff --staged --quiet || git commit -m "Update weather card - local moon phase engine" && git push
+          git diff --staged --quiet || git commit -m "Update weather card - spacing + Moon Phase label" && git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
