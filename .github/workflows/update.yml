@@ -174,10 +174,10 @@ jobs:
 
             // MOON PHASE ROW
             const moonX = textX;
-            const moonY = logoCenterY + 90;
-
+            const moonY = logoCenterY + 60;  // moved up for better spacing
+            
             if (moonIcon) ctx.drawImage(moonIcon, moonX, moonY, 60, 60);
-
+            
             ctx.fillStyle = '#334155';
             ctx.font = '28px system-ui';
             ctx.fillText(
@@ -185,9 +185,10 @@ jobs:
               moonX + 75,
               moonY + 30
             );
-
+            
             // EXTRA SPACING BELOW MOON BLOCK
-            const contentTop = 380;
+            const contentTop = 460;   // guaranteed spacing
+
 
             // COLUMN POSITIONS
             const LEFT = 140;
